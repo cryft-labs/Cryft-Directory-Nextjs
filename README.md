@@ -2,7 +2,7 @@
 
 ![Cryft Network Logo](https://pbs.twimg.com/profile_images/1793826208737533954/JeNtNxK2_400x400.png)
 
-Cryft Network Link Directory and Detail Page.
+Cryft Network Link Tree and Details Page.
 
 ## Overview
 
