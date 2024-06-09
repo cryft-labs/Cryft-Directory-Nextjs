@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryft Network</title>
+    <link rel="icon" href="https://pbs.twimg.com/profile_images/1793826208737533954/JeNtNxK2_400x400.png"
+        type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+    <script>
+        let expanded = false;
+
+        async function fetchNetworkStats() {
+            try {
+                const response = await fetch('https://status.cryft.network/ext/health', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'health.health',
+                        params: {
+                            tags: ["11111111111111111111111111111111LpoYY"]
+                        }
+                    })
+                });
+                const data = await response.json();
+                if (data.result && data.result.checks) {
+                    updateNetworkStats(data.result);
+                } else {
+                    console.error('Unexpected response format:', data);
+                }
+            } catch (error) {
+                console.error('Error fetching network stats:', error);
+            }
+        }
+
+        function truncateId(id) {
+            if (id.length > 8) {
+                return `${id.slice(0, 4)}...${id.slice(-4)}`;
+            }
+            return id;
+        }
+
+        function updateNetworkStats(data) {
+            const overallStatus = data.healthy ? 'Healthy' : 'Unhealthy';
+            const overallStatusClass = data.healthy ? 'healthy' : 'unhealthy';
+
+            document.querySelector('.status-summary p span').innerText = overallStatus;
+            document.querySelector('.status-summary p span').className = overallStatusClass;
+            document.querySelector('.status-summary p + p').innerText = `Last Checked: ${new Date(data.checks.C.timestamp).toLocaleString()}`;
+
+            updateChainDetails('C', data.checks.C);
+            updateChainDetails('P', data.checks.P);
+            updateChainDetails('X', data.checks.X);
+        }
+
+        function updateChainDetails(chain, data) {
+            const chainDetails = document.querySelector(`.status-box[data-chain="${chain}"]`);
+            chainDetails.querySelector('.chain-id').innerText = `Mainnet Chain: ${chain}`;
+            chainDetails.querySelector('.last-height').innerText = `Last Accepted Height: ${data.message.engine.consensus.lastAcceptedHeight}`;
+            chainDetails.querySelector('.last-id').innerText = `Last Accepted ID: ${truncateId(data.message.engine.consensus.lastAcceptedID)}`;
+            chainDetails.querySelector('.longest-block').innerText = `Longest Processing Block: ${data.message.engine.consensus.longestProcessingBlock}`;
+            chainDetails.querySelector('.percent-connected').innerText = `Percent Connected: ${(data.message.networking.percentConnected * 100).toFixed(2)}%`;
+        }
+
+        async function updateHeaderInfo() {
+            try {
+                const headerInfo = document.querySelector('.header-info');
+                headerInfo.innerHTML = `
+                    <span>Cryft Network Link Tree and Details</span>
+                `;
+            } catch (error) {
+                console.error('Error updating header info:', error);
+                const headerInfo = document.querySelector('.header-info');
+                headerInfo.innerHTML = '<span>Details coming soon</span>';
+            }
+        }
+
+        function toggleDetails() {
+            expanded = !expanded;
+            const detailsDiv = document.querySelector('.expanded-details');
+            detailsDiv.classList.toggle('hidden');
+            const button = document.querySelector('.expand-button');
+            if (expanded) {
+                button.innerText = 'Retract Network Stats';
+                detailsDiv.classList.add('fade-in');
+                detailsDiv.classList.remove('fade-out');
+            } else {
+                button.innerText = 'Expand Network Stats';
+                detailsDiv.classList.add('fade-out');
+                detailsDiv.classList.remove('fade-in');
+            }
+        }
+
+        function startPolling() {
+            fetchNetworkStats();
+            updateHeaderInfo();
+            setInterval(fetchNetworkStats, 5000); // Poll every 5 seconds
+            setInterval(updateHeaderInfo, 10000); // Update header info every 10 seconds
+        }
+
+        window.onload = startPolling;
+
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        const popupContent = document.getElementById('popup-content');
+
+        function scrollToChain(chainId) {
+            const chainSection = document.getElementById(chainId);
+            chainSection.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+        }
+
+        async function openPopup(title) {
+            const popupOverlay = document.querySelector('.overlay');
+            popupOverlay.classList.add('show');
+
+            if (title === 'Cryft Network') {
+                document.getElementById('c-chain-mainnet').style.display = 'block';
+                document.getElementById('x-chain-mainnet').style.display = 'block';
+                document.getElementById('p-chain-mainnet').style.display = 'block';
+                document.getElementById('c-chain-testnet').style.display = 'none';
+                document.getElementById('x-chain-testnet').style.display = 'none';
+                document.getElementById('p-chain-testnet').style.display = 'none';
+            } else if (title === 'Mustang Testnet') {
+                document.getElementById('c-chain-mainnet').style.display = 'none';
+                document.getElementById('x-chain-mainnet').style.display = 'none';
+                document.getElementById('p-chain-mainnet').style.display = 'none';
+                document.getElementById('c-chain-testnet').style.display = 'block';
+                document.getElementById('x-chain-testnet').style.display = 'block';
+                document.getElementById('p-chain-testnet').style.display = 'block';
+            }
+        }
+
+        function closePopup() {
+            const popupOverlay = document.querySelector('.overlay');
+            popupOverlay.classList.remove('show');
+        }
+
+        function handleBubbleClick(bubbleTitle) {
+            openPopup(bubbleTitle);
+        }
+
+        function copyToClipboard(text, element) {
+        navigator.clipboard.writeText(text).then(() => {
+            element.innerText = "Copied!";
+            setTimeout(() => {
+                element.innerText = text;
+            }, 2000);
+        }, () => {
+            alert("Failed to copy to clipboard.");
+        });
+    }
+
+    </script>
+</head>
+
+<body>
+    <div class="header-info">
+    </div>
+
+    <div class="social-icons">
+        <a class="logo" href="https://github.com/cryft-labs" target="_blank">
+            <i class="fab fa-github"></i>
+        </a>
+        <a class="logo" href="https://x.com/cryftnet" target="_blank">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="icon">
+                <path
+                    d="M64 32C28.7 32 0 60.7 0 96V416c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zm297.1 84L257.3 234.6 379.4 396H283.8L209 298.1 123.3 396H75.8l111-126.9L69.7 116h98l67.7 89.5L313.6 116h47.5zM323.3 367.6L153.4 142.9H125.1L296.9 367.6h26.3z" />
+            </svg>
+        </a>
+        <a class="logo" href="https://cryft.net" target="_blank">
+            <i class="fas fa-globe"></i>
+        </a>
+    </div>
+
+    <section class="animated-background">
+        <div id="stars1"></div>
+        <div id="stars2"></div>
+        <div id="stars3"></div>
+    </section>
+
+    <img id="logo" src="https://pbs.twimg.com/profile_images/1793826208737533954/JeNtNxK2_400x400.png"
+        alt="Cryft Network Logo">
+
+    <div class="bubbles">
+        <div class="bubble" onclick="handleBubbleClick('Cryft Network')">
+            <h3>Mainnet Details</h3>
+        </div>
+        <div class="bubble" onclick="handleBubbleClick('Mustang Testnet')">
+            <h3>Testnet Details</h3>
+        </div>
+    </div>
+
+    <div id="links">
+        <h2>Network Links</h2>
+        <a class="link" href="https://cryftscan.com" target="_blank">
+            <i class="fas fa-search"></i>Block Explorer
+        </a>
+        <a class="link" href="https://wallet.cryft.network" target="_blank">
+            <i class="fas fa-wallet"></i>Network Wallet
+        </a>
+        <a class="link" href="https://faucet.cryft.network" target="_blank">
+            <i class="fas fa-horse"></i>Mustang Faucet
+        </a>
+        <a class="link" href="https://docs.cryft.network" target="_blank">
+            <i class="fas fa-book"></i>Documentation
+        </a>
+    </div>
+
+    <div id="networkStatus">
+        <h2>Cryft Network Status</h2>
+        <div class="status-summary">
+            <p>Overall Status: <span></span></p>
+            <p></p>
+            <button class="expand-button" onclick="toggleDetails()">Expand Network Stats</button>
+        </div>
+        <div class="expanded-details hidden">
+            <div class="status-box" data-chain="C">
+                <p class="chain-id"></p>
+                <p class="last-height"></p>
+                <p class="last-id"></p>
+                <p class="longest-block"></p>
+                <p class="percent-connected"></p>
+            </div>
+            <div class="status-box" data-chain="P">
+                <p class="chain-id"></p>
+                <p class="last-height"></p>
+                <p class="last-id"></p>
+                <p class="longest-block"></p>
+                <p class="percent-connected"></p>
+            </div>
+            <div class="status-box" data-chain="X">
+                <p class="chain-id"></p>
+                <p class="last-height"></p>
+                <p class="last-id"></p>
+                <p class="longest-block"></p>
+                <p class="percent-connected"></p>
+            </div>
+        </div>
+    </div>
+    <div id="hashtag">
+        v0.0.1
+    </div>
+
+    <div class="overlay" id="popup">
+        <div class="popup">
+            <button class="popup-close" onclick="closePopup()">&times;</button>
+            <div class="popup-content" id="popup-content">
+                <!-- Mainnet Sections -->
+                <div class="chain-section" id="c-chain-mainnet">
+                    <h3>C-Chain (Mainnet)</h3>
+                    <p>This chain supports virtually all Ethereum wallets, smart contracts, and operations.</p>
+                    <div class="chain-details">
+                        <p>Chain ID: <span class="click-to-copy" onclick="copyToClipboard('32323', this)">32323</span></p>
+                        <p>Currency symbol: <span class="click-to-copy" onclick="copyToClipboard('CRYFT', this)">CRYFT</span></p>
+                        <p>RPC URL: <span class="click-to-copy" onclick="copyToClipboard('https://connect.cryft.network/ext/bc/C/rpc', this)">https://connect.cryft.network/ext/bc/C/rpc</span></p>
+                        <p>WebSocket URL: <span class="click-to-copy" onclick="copyToClipboard('wss://connect.cryft.network/ext/bc/C/ws', this)">wss://connect.cryft.network/ext/bc/C/ws</span></p>
+                    </div>
+                </div>
+                <div class="chain-section" id="x-chain-mainnet">
+                    <h3>X-Chain (Mainnet)</h3>
+                    <p>This chain is optimized for high-throughput transactions.</p>
+                    <div class="chain-details">
+                        <p>Chain ID: <span class="click-to-copy" onclick="copyToClipboard('1', this)">1</span></p>
+                        <p>Currency symbol: <span class="click-to-copy" onclick="copyToClipboard('CRYFT', this)">CRYFT</span></p>
+                        <p>RPC URL: <span class="click-to-copy" onclick="copyToClipboard('https://connect.cryft.network/ext/bc/X', this)">https://connect.cryft.network/ext/bc/X</span></p>
+                    </div>
+                </div>
+                <div class="chain-section" id="p-chain-mainnet">
+                    <h3>P-Chain (Mainnet)</h3>
+                    <p>This chain manages the Cryft Network's validators and subnets.</p>
+                    <div class="chain-details">
+                        <p>Currency symbol: <span class="click-to-copy" onclick="copyToClipboard('CRYFT', this)">CRYFT</span></p>
+                        <p>RPC URL: <span class="click-to-copy" onclick="copyToClipboard('https://connect.cryft.network/ext/bc/P', this)">https://connect.cryft.network/ext/bc/P</span></p>
+                    </div>
+                </div>
+                <!-- Testnet Sections -->
+                <div class="chain-section" id="c-chain-testnet">
+                    <h3>C-Chain (Mustang Testnet)</h3>
+                    <p>This chain supports virtually all Ethereum wallets, smart contracts, and operations.</p>
+                    <div class="chain-details">
+                        <p>Chain ID: <span class="click-to-copy" onclick="copyToClipboard('32322', this)">32322</span></p>
+                        <p>Currency symbol: <span class="click-to-copy" onclick="copyToClipboard('CRYFT', this)">CRYFT</span></p>
+                        <p>RPC URL: <span class="click-to-copy" onclick="copyToClipboard('https://mustang.cryft.network/ext/bc/C/rpc', this)">https://mustang.cryft.network/ext/bc/C/rpc</span></p>
+                        <p>WebSocket URL: <span class="click-to-copy" onclick="copyToClipboard('wss://mustang.cryft.network/ext/bc/C/ws', this)">wss://mustang.cryft.network/ext/bc/C/ws</span></p>
+                    </div>
+                </div>
+                <div class="chain-section" id="x-chain-testnet">
+                    <h3>X-Chain (Mustang Testnet)</h3>
+                    <p>This chain is optimized for high-throughput transactions.</p>
+                    <div class="chain-details">
+                        <p>Currency symbol: <span class="click-to-copy" onclick="copyToClipboard('CRYFT', this)">CRYFT</span></p>
+                        <p>RPC URL: <span class="click-to-copy" onclick="copyToClipboard('https://mustang.cryft.network/ext/bc/X', this)">https://mustang.cryft.network/ext/bc/X</span></p>
+                    </div>
+                </div>
+                <div class="chain-section" id="p-chain-testnet">
+                    <h3>P-Chain (Mustang Testnet)</h3>
+                    <p>This chain manages the Mustang Testnet's validators and subnets.</p>
+                    <div class="chain-details">
+                        <p>Currency symbol: <span class="click-to-copy" onclick="copyToClipboard('CRYFT', this)">CRYFT</span></p>
+                        <p>RPC URL: <span class="click-to-copy" onclick="copyToClipboard('https://mustang.cryft.network/ext/bc/P', this)">https://mustang.cryft.network/ext/bc/P</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</body>
+
+</html>
